@@ -431,9 +431,8 @@ class DecisionTree:
     """
     Compute the prediction value for a leaf node.
 
-    For both regression and classification (with numeric labels), we return
-    the mean of target values. For classification, this works when classes
-    are encoded as 0/1 - the mean represents the probability of class 1.
+    For regression (variance/squared_error criterion): return the mean.
+    For classification (gini criterion): return the mode (most frequent class).
 
     Parameters
     ----------
@@ -445,7 +444,13 @@ class DecisionTree:
     float
       The prediction value for this leaf.
     """
-    return np.mean(targets)
+    if self.criterion == 'gini':
+      # Classification: return mode (most frequent class)
+      values, counts = np.unique(targets, return_counts=True)
+      return values[np.argmax(counts)]
+    else:
+      # Regression: return mean
+      return np.mean(targets)
 
   def _build_node(self, data: np.ndarray, depth: int = 0) -> Node:
     """
@@ -625,10 +630,12 @@ class DecisionTree:
     np.ndarray
       Array of predictions with shape (n_samples,).
     """
-
     self._feature_names = list(X_test.columns)
-
     self._feature_dtypes = X_test.dtypes
+
+    predictions = []
     for _, row in X_test.iterrows():
-      predictions = [float(self._predict_single(row, model))]
+      pred = self._predict_single(row, model)
+      predictions.append(pred)
+
     return np.array(predictions)

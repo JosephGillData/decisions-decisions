@@ -173,7 +173,10 @@ class RandomForest:
 
   def predict(self, model: List[Node], X_test: pd.DataFrame) -> np.ndarray:
     """
-    Make predictions by averaging predictions from all trees.
+    Make predictions by aggregating predictions from all trees.
+
+    For regression (variance criterion): average predictions.
+    For classification (gini criterion): majority vote.
 
     Parameters
     ----------
@@ -186,7 +189,6 @@ class RandomForest:
     -------
     np.ndarray
       Array of predictions with shape (n_samples,).
-      Each prediction is the mean of all tree predictions.
     """
     # Collect predictions from each tree
     all_predictions = []
@@ -195,8 +197,17 @@ class RandomForest:
       tree_preds = self._tree_predictor.predict(tree_root, X_test)
       all_predictions.append(tree_preds)
 
-    # Average predictions across all trees
     all_predictions = np.array(all_predictions)
-    ensemble_predictions = all_predictions.mean(axis=0)
 
-    return ensemble_predictions
+    if self.criterion == 'gini':
+      # Classification: majority vote
+      # For each sample, find the mode across all tree predictions
+      ensemble_predictions = []
+      for i in range(all_predictions.shape[1]):
+        sample_preds = all_predictions[:, i]
+        values, counts = np.unique(sample_preds, return_counts=True)
+        ensemble_predictions.append(values[np.argmax(counts)])
+      return np.array(ensemble_predictions)
+    else:
+      # Regression: average predictions
+      return all_predictions.mean(axis=0)
